@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Panda!"
 requires-python = ">=3.9"
 
+[project.optional-dependencies]
+docs = ["sphinx>=7", "shibuya", "sphinxcontrib-mermaid"]
+
 [tool.setuptools]
 packages = ["bamboo"]
 
