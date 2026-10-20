@@ -14,6 +14,8 @@ def pack_frame(msg: Message) -> bytes:
         "time":     msg.env.time,
         "destid":   msg.env.destid,
         "sourceid": msg.env.sourceid,
+        "traceparent": msg.env.traceparent,
+        "tracestate":  msg.env.tracestate,
     }
     header = json.dumps(env_dict, separators=(",", ":")).encode("utf-8")
     if msg.binary is None:
@@ -36,5 +38,7 @@ def unpack_frame(frame: bytes) -> Message:
         time=env["time"],
         destid=env.get("destid"),
         sourceid=env["sourceid"],
+        traceparent=env.get("traceparent"),
+        tracestate=env.get("tracestate"),
     )
     return Message(envelope, binary)

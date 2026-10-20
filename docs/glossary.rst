@@ -46,7 +46,7 @@ Glossary
 
    Envelope
       The structured metadata around a message's payload: type, transaction
-      ID, key, source, destination and time.
+      ID, key, source, destination, time and trace context.
 
    Fan-out
       Delivering one message to many subscribers.
@@ -116,6 +116,12 @@ Glossary
    Telemetry
       Data recorded automatically and sent from sensors or instruments for
       monitoring.
+
+   Trace context
+   traceparent
+      W3C Trace Context fields (``traceparent``, ``tracestate``) carried in
+      the envelope so OpenTelemetry can link spans across peers. Responses
+      and ACKs copy them from the request.
 
    Transaction ID
    transid
