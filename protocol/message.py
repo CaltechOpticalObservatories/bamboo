@@ -26,6 +26,8 @@ class Envelope:
     time: str                    # Sender's message time
     destid: Optional[str]        # UUID of destination peer. None => broadcast/publish
     sourceid: str                # UUID of source peer
+    traceparent: Optional[str] = None  # W3C Trace Context 'traceparent' (OpenTelemetry). None => untraced
+    tracestate: Optional[str] = None   # W3C Trace Context 'tracestate' (vendor-specific, optional)
 
 @dataclass(frozen=True)
 class Message:

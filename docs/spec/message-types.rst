@@ -66,8 +66,9 @@ the sender.
 RESP
 ----
 
-Carries the result of a ``REQ`` back to the requester. ``transid`` and
-``key`` match the request, and ``destid`` is the requester. The payload is one
+Carries the result of a ``REQ`` back to the requester. ``transid``,
+``key``, ``traceparent`` and ``tracestate`` match the request, and ``destid``
+is the requester. The payload is one
 of:
 
 .. code-block:: text

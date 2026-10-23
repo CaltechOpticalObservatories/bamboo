@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import datetime, timezone
+import re
 import uuid
 from typing import Optional, Dict, Any, Iterable
 
@@ -22,6 +23,8 @@ class MessageBuilder:
             "time":     _now_iso(),
             "destid":   None,
             "sourceid": sourceid,
+            "traceparent": None,
+            "tracestate":  None,
         }
         self._binary: Optional[bytes] = None
 
@@ -83,6 +86,14 @@ class MessageBuilder:
         self._env["destid"] = destid
         return self
 
+    # W3C Trace Context, e.g. from opentelemetry.propagate.inject(carrier)
+    def trace(self, traceparent: Optional[str], tracestate: Optional[str] = None):
+        if traceparent is not None and not _valid_traceparent(traceparent):
+            raise ValueError(f"Invalid W3C traceparent: {traceparent!r}")
+        self._env["traceparent"] = traceparent
+        self._env["tracestate"]  = tracestate if traceparent is not None else None
+        return self
+
     def json(self, payload: Dict[str, Any]):
         self._env["payload"] = payload
         return self
@@ -104,3 +115,13 @@ def _now_iso() -> str:
 
 def _uuid() -> str:
     return uuid.uuid4().hex
+
+# version-traceid-parentid-flags, lowercase hex
+_TRACEPARENT_RE = re.compile(r"^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$")
+
+def _valid_traceparent(value: str) -> bool:
+    m = _TRACEPARENT_RE.match(value)
+    if not m:
+        return False
+    version, trace_id, parent_id, _ = m.groups()
+    return version != "ff" and trace_id != "0" * 32 and parent_id != "0" * 16

@@ -186,6 +186,8 @@ class Protocol:
                             time=_iso_now(),
                             destid=e.sourceid,
                             sourceid=self.self_id,
+                            traceparent=e.traceparent,
+                            tracestate=e.tracestate,
                         ),
                         binary=None,
                     )
@@ -219,6 +221,8 @@ class Protocol:
                 time=_iso_now(),
                 destid=e.sourceid,
                 sourceid=self.self_id,
+                traceparent=e.traceparent,
+                tracestate=e.tracestate,
             ),
             binary=None,
         )
@@ -227,7 +231,7 @@ class Protocol:
     def serve(self, key: str, callback: Callable[[dict, dict], Optional[dict]]) -> None:
         """
         Register a handler that receives (payload: dict, ctx: dict) and returns dict | None.
-        ctx = {"key","source","transid","time","binary","raw_msg"}
+        ctx = {"key","source","transid","time","traceparent","tracestate","binary","raw_msg"}
         """
         def _wrap(msg: Message):
             payload = msg.env.payload
@@ -236,6 +240,8 @@ class Protocol:
                 "source": msg.env.sourceid,
                 "transid": msg.env.transid,
                 "time": msg.env.time,
+                "traceparent": msg.env.traceparent,
+                "tracestate": msg.env.tracestate,
                 "binary": None,
                 "raw_msg": msg,
             }
