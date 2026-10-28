@@ -251,7 +251,9 @@ class Protocol:
                 return {"ok": False, "error": str(ex)}
         self.on(key, _wrap)
 
-    def publish(self, topic: str, payload: dict) -> int:
+    def publish(self, topic: str, payload: dict, *,
+                traceparent: Optional[str] = None,
+                tracestate: Optional[str] = None) -> int:
         """
         Publish an event on `topic`.
         If we have known subscribers, fan out direct PUB to them (fast-ACKs happen, but we don't wait).
@@ -261,11 +263,13 @@ class Protocol:
         subs = [pid for pid, topics in self._remote_subs.items() if topic in topics]
         if subs:
             for pid in subs:
-                msg = (MessageBuilder(self.self_id).pub(topic, payload).to(pid).build())
+                msg = (MessageBuilder(self.self_id).pub(topic, payload).to(pid)
+                       .trace(traceparent, tracestate).build())
                 self.send(msg)  # no waiting
             return len(subs)
         # fallback broadcast
-        msg = (MessageBuilder(self.self_id).pub(topic, payload).to(None).build())
+        msg = (MessageBuilder(self.self_id).pub(topic, payload).to(None)
+               .trace(traceparent, tracestate).build())
         self.send(msg)
         return 0
 
@@ -293,12 +297,15 @@ class Protocol:
                .build())
         self.send(msg)   
 
-    def request_peer(self, peer_id: str, key: str, payload: dict, timeout_s: float = 8.0) -> dict:
+    def request_peer(self, peer_id: str, key: str, payload: dict, timeout_s: float = 8.0, *,
+                     traceparent: Optional[str] = None,
+                     tracestate: Optional[str] = None) -> dict:
         """Build+send a keyed REQ to a peer"""
         msg = (
             MessageBuilder(sourceid=self.self_id)
             .req(key, payload)
             .to(peer_id)
+            .trace(traceparent, tracestate)
             .build()
         )
         return self._request_with_timeout(msg, timeout_s)
