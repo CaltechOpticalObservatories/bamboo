@@ -29,3 +29,10 @@ Transports must:
 
 Transports need not guarantee ordering or delivery. The protocol does not
 depend on either.
+
+A transport with its own typed wire format, such as DDS, can carry the
+envelope as fields instead of a JSON frame. Construct its ``Protocol`` with
+``pack_frames=False``: ``send`` then receives the ``Message`` itself, and the
+transport passes a ``Message`` to the ``on_receive`` callback. It must deliver
+every envelope field, the payload, and the binary attachment unchanged. The
+``mtu`` guard still measures the message as ``pack_frame`` would encode it.
