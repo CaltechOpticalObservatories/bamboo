@@ -117,7 +117,9 @@ Tracing
 ``traceparent`` and ``tracestate`` use the names and formats of the W3C Trace
 Context headers, so OpenTelemetry's default propagator can read and write them
 directly. bamboo does not depend on OpenTelemetry and never creates trace
-context itself; senders that want tracing set it explicitly:
+context itself; senders that want tracing set it explicitly, with
+``MessageBuilder.trace()`` or the ``traceparent`` / ``tracestate`` arguments
+of ``request_peer`` and ``publish``:
 
 .. code-block:: python
 
@@ -131,6 +133,11 @@ context itself; senders that want tracing set it explicitly:
           .to("peer-b")
           .trace(carrier.get("traceparent"), carrier.get("tracestate"))
           .build())
+
+   # or through the convenience senders
+   proto.request_peer("peer-b", "camera.capture", {"exposure_ms": 20},
+                      traceparent=carrier.get("traceparent"),
+                      tracestate=carrier.get("tracestate"))
 
    # receiver, inside a serve() callback
    def capture(payload, ctx):
