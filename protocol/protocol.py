@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Optional, Callable, List, Set
+from typing import Dict, Optional, Callable, List, Set, Tuple
 from datetime import datetime, timezone
 import queue, threading
 
@@ -8,7 +8,14 @@ from .message import Message, Envelope, MsgType
 from .wire import pack_frame, unpack_frame
 from .keys import KeyRegistry
 from .discovery import PeerTable, DISCOVERY_TOPIC
-from .builder import MessageBuilder
+from .builder import MessageBuilder, _valid_traceparent
+
+def _usable_trace(traceparent: Optional[str],
+                  tracestate: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    # W3C Trace Context: an unparsable traceparent is ignored, and its tracestate with it
+    if traceparent is None or not _valid_traceparent(traceparent):
+        return None, None
+    return traceparent, tracestate
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -251,21 +258,27 @@ class Protocol:
                 return {"ok": False, "error": str(ex)}
         self.on(key, _wrap)
 
-    def publish(self, topic: str, payload: dict) -> int:
+    def publish(self, topic: str, payload: dict, *,
+                traceparent: Optional[str] = None,
+                tracestate: Optional[str] = None) -> int:
         """
         Publish an event on `topic`.
         If we have known subscribers, fan out direct PUB to them (fast-ACKs happen, but we don't wait).
         Otherwise, broadcast a single PUB.
         Returns the number of direct recipients (0 means broadcast fallback).
+        An invalid traceparent is dropped and the PUB goes out untraced.
         """
+        traceparent, tracestate = _usable_trace(traceparent, tracestate)
         subs = [pid for pid, topics in self._remote_subs.items() if topic in topics]
         if subs:
             for pid in subs:
-                msg = (MessageBuilder(self.self_id).pub(topic, payload).to(pid).build())
+                msg = (MessageBuilder(self.self_id).pub(topic, payload).to(pid)
+                       .trace(traceparent, tracestate).build())
                 self.send(msg)  # no waiting
             return len(subs)
         # fallback broadcast
-        msg = (MessageBuilder(self.self_id).pub(topic, payload).to(None).build())
+        msg = (MessageBuilder(self.self_id).pub(topic, payload).to(None)
+               .trace(traceparent, tracestate).build())
         self.send(msg)
         return 0
 
@@ -293,12 +306,16 @@ class Protocol:
                .build())
         self.send(msg)   
 
-    def request_peer(self, peer_id: str, key: str, payload: dict, timeout_s: float = 8.0) -> dict:
-        """Build+send a keyed REQ to a peer"""
+    def request_peer(self, peer_id: str, key: str, payload: dict, timeout_s: float = 8.0, *,
+                     traceparent: Optional[str] = None,
+                     tracestate: Optional[str] = None) -> dict:
+        """Build+send a keyed REQ to a peer; an invalid traceparent is dropped, not raised"""
+        traceparent, tracestate = _usable_trace(traceparent, tracestate)
         msg = (
             MessageBuilder(sourceid=self.self_id)
             .req(key, payload)
             .to(peer_id)
+            .trace(traceparent, tracestate)
             .build()
         )
         return self._request_with_timeout(msg, timeout_s)
