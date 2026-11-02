@@ -24,11 +24,10 @@ class Protocol:
     # Designed to be transport-agnostic; the Transport just moves frames
 
     def __init__(self, transport: Transport, self_id: str,
-                 keys: Optional[KeyRegistry] = None, pack_frames: bool = True):
-        # pack_frames=False hands the transport Message objects both ways, for
-        # transports that encode the envelope in their own typed wire format
+                 keys: Optional[KeyRegistry] = None):
         self.t = transport
-        self._pack_frames = pack_frames
+        # getattr: transports need not subclass Transport
+        self._pack_frames = getattr(transport, "pack_frames", True)
         self.self_id = self_id
         self.keys = keys or KeyRegistry()
 

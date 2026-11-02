@@ -12,7 +12,9 @@ class LocalTransport(Transport):
 
     mtu = 1_000_000
 
-    def __init__(self, peers: Dict[str, "LocalTransport"], peer_id: str) -> None:
+    def __init__(self, peers: Dict[str, "LocalTransport"], peer_id: str,
+                 pack_frames: bool) -> None:
+        self.pack_frames = pack_frames
         self.peers = peers
         self.peer_id = peer_id
         self.sent: List[Tuple[str, Any]] = []
@@ -38,15 +40,15 @@ class LocalTransport(Transport):
 
 def _pair(pack_frames: bool) -> Tuple[Protocol, Protocol, LocalTransport]:
     peers: dict = {}
-    server = Protocol(LocalTransport(peers, "server"), "server", pack_frames=pack_frames)
-    client_transport = LocalTransport(peers, "client")
-    client = Protocol(client_transport, "client", pack_frames=pack_frames)
+    server = Protocol(LocalTransport(peers, "server", pack_frames), "server")
+    client_transport = LocalTransport(peers, "client", pack_frames)
+    client = Protocol(client_transport, "client")
     server.serve("echo", lambda payload, _ctx: {"ok": True, "echo": payload})
     return server, client, client_transport
 
 
 class PackFramesTests(unittest.TestCase):
-    """The default sends bytes; ``pack_frames=False`` sends ``Message`` objects."""
+    """Bytes by default; ``Message`` objects when the transport sets ``pack_frames = False``."""
 
     def test_request_round_trips_either_way(self) -> None:
         """Deliver a request and its response with and without packing."""

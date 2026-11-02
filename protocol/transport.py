@@ -7,6 +7,10 @@ SrcStr  = str   # "peer:<uuid>"
 
 class Transport(ABC):
 
+    # False: send() and on_receive callbacks carry Message objects, for
+    # transports that encode the envelope in their own typed wire format
+    pack_frames: bool = True
+
     @property
     @abstractmethod
     def mtu(self) -> int:
