@@ -33,6 +33,8 @@ class Protocol:
     def __init__(self, transport: Transport, self_id: str,
                  keys: Optional[KeyRegistry] = None):
         self.t = transport
+        # getattr: transports need not subclass Transport
+        self._pack_frames = getattr(transport, "pack_frames", True)
         self.self_id = self_id
         self.keys = keys or KeyRegistry()
 
@@ -66,7 +68,7 @@ class Protocol:
     def send(self, msg: Message) -> None:
         """Send a message without waiting (direct or broadcast)."""
         dest = f"peer:{msg.env.destid}" if msg.env.destid else "broadcast:*"
-        self.t.send(dest, pack_frame(msg))
+        self.t.send(dest, pack_frame(msg) if self._pack_frames else msg)
 
     def request(self, msg: Message) -> dict:
         """
@@ -119,7 +121,7 @@ class Protocol:
                 self._resp_wait.pop(msg.env.transid, None)
 
     def _on_frame(self, source: str, frame: bytes) -> None:
-        msg = unpack_frame(frame)
+        msg = unpack_frame(frame) if self._pack_frames else frame
         e = msg.env
 
         # Route ACK/RESP
