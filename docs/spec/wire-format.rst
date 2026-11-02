@@ -145,6 +145,12 @@ of ``request_peer`` and ``publish``:
        with tracer.start_as_current_span("camera.capture", context=parent):
            ...
 
+``request_peer`` and ``publish`` drop a ``traceparent`` that is not valid W3C
+Trace Context, along with its ``tracestate``, and send the message untraced,
+as the W3C specification has receivers ignore an unparsable ``traceparent``.
+``MessageBuilder.trace()`` raises ``ValueError`` for the same input, since the
+caller set it explicitly.
+
 The trace ID in ``traceparent`` is unrelated to ``transid``. ``transid``
 matches one request to its ``ACK`` and ``RESP``; the trace ID can span many
 transactions across many peers.
